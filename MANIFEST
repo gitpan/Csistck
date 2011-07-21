@@ -11,3 +11,4 @@ lib/Csistck/Test/Permission.pm
 lib/Csistck/Test/Pkg.pm
 lib/Csistck/Test/Template.pm
 t/Csistck.t
+META.yml                                 Module meta-data (added by MakeMaker)

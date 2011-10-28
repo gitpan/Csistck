@@ -1,4 +1,0 @@
-syntax: glob
-test.pl
-.files
-blib

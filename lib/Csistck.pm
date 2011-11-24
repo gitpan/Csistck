@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.05_01';
+our $VERSION = '0.06';
 
 # We export function in the main namespace
 use base 'Exporter';
@@ -110,10 +110,7 @@ sub process {
                     $obj->repair()
                 }
                 else {
-                    Csistck::Term::prompt(
-                      repair => sub { $obj->repair },
-                      diff => sub { $obj->diff } 
-                    );
+                    Csistck::Term::prompt($obj);
                 }
             }
         }

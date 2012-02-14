@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Csistck
-version:            0.07_04
+version:            0.07_05
 abstract:           Perl system consistency check framework
 author:
     - Anthony Johnson <aj@ohess.org>
@@ -16,7 +16,7 @@ requires:
     File::Copy:           0
     File::stat:           0
     Getopt::Long:         0
-    Linux::Distribution;:  0
+    Linux::Distribution:  0
     Scalar::Util:         0
     Sys::Hostname::Long:  0
     Template:             0

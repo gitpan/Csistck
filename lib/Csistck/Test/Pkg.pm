@@ -15,6 +15,27 @@ use Digest::MD5;
 use File::Basename;
 use Linux::Distribution qw/distribution_name/;
 
+our $Cmds = {
+    dpkg => {
+        check => 'dpkg -L "%s"',
+        diff => 'apt-get -s install "%s"',
+        install => 'apt-get -qq -y install "%s"'
+    },
+    rpm => {
+        check => 'rpm -q "%s"',
+        install => 'yum -q -y --noplugins install "%s"'
+    },
+    emerge => {
+        check => 'equery -qC list "%s"',
+        diff => 'emerge --color n -pq "%s"',
+        install => 'emerge --color n -q "%s"'
+    },
+    pacman => {
+        check => 'pacman -Qe "%s"',
+        install => 'pacman -Sq --noconfirm "%s"'
+    }
+};
+
 =head1 NAME
 
 Csistck::Test::Pkg - Csistck package check
@@ -61,19 +82,21 @@ sub pkg {
     my $pkgref = shift;
     my $type = shift;
     my $pkg;
+    my $diff;
 
-    # Priority: 'type' argument, 'pkg_type' option, detect_pkg_manager
+    # Priority: 'type' argument, 'pkg_type' option, detect_pkg_manager.
     if (! $type) {
         $type = option('pkg_type') // detect_pkg_manager();
     }
+    die("Bad package manager: manager=<$type>")
+      if (! $type);
+    die("Package manager not supported: type=<$type>")
+      if (! $Cmds->{$type});
+    
     $pkg = get_pkg($pkgref, $type);
-
-    # Not all managers support "diff" of packages
-    my $diff = undef;
-    if ($type eq 'dpkg') {
-        $diff = sub { pkg_diff($pkg, $type); };
-    }
-
+    $diff = sub { pkg_diff($pkg, $type); }
+      if ($Cmds->{$type}->{diff});
+    
     return Csistck::Test->new(
         check => sub { pkg_check($pkg, $type); },
         repair => sub { pkg_install($pkg, $type); },
@@ -84,16 +107,10 @@ sub pkg {
 
 sub pkg_check {
     my ($pkg, $type) = @_;
-    my $cmd = "";
+    my $cmd = sprintf($Cmds->{$type}->{check}, $pkg) or
+      die("Package check command missing: type=<$type>");
 
-    # Decide command, execute. Die on failure
-    given ($type) {
-        when ('dpkg') { $cmd = "dpkg -L \"$pkg\""; };
-        when ('pacman') { $cmd = "pacman -Qe \"$pkg\""; };
-    }
-    
-    debug("Searching for package via command: cmd=<$cmd>");
-    
+    debug("Searching for package via command: cmd=<$cmd>");    
     my $ret = system("$cmd 1>/dev/null 2>/dev/null");
 
     die("Package missing")
@@ -103,18 +120,11 @@ sub pkg_check {
 # Package install
 sub pkg_install {
     my ($pkg, $type) = @_;
-    my $cmd = "";
+    my $cmd = sprintf($Cmds->{$type}->{install}, $pkg) or
+      die("Package install command missing: type=<$type>");
     
-    given ($type) {
-        when ("dpkg") { 
-            $ENV{DEBIAN_FRONTEND} = "noninteractive";
-            $cmd = "apt-get -qq -y install \"$pkg\""; 
-        }
-        when ("pacman") { $cmd = "pacman -Sq --noconfirm \"$pkg\""; };
-    }
-    
+    $ENV{DEBIAN_FRONTEND} = "noninteractive";
     debug("Installing package via command: cmd=<$cmd>");
-
     my $ret = system("$cmd 1>/dev/null 2>/dev/null");
 
     die("Package installation failed")
@@ -124,19 +134,12 @@ sub pkg_install {
 # Package diff
 sub pkg_diff {
     my ($pkg, $type) = @_;
-    my $cmd = "";
+    my $cmd = sprintf($Cmds->{$type}->{diff}, $pkg) or
+      die("Package diff command missing: type=<$type>");
     
-    given ($type) {
-        when ("dpkg") { 
-            $ENV{DEBIAN_FRONTEND} = "noninteractive";
-            $cmd = "apt-get -s install \"$pkg\""; 
-        }
-        default {}
-    }
-    
+    $ENV{DEBIAN_FRONTEND} = "noninteractive";
     debug("Showing package differences via command: cmd=<$cmd>");
-
-    my $ret = system("$cmd 1>/dev/null 2>/dev/null");
+    my $ret = system("$cmd 2>/dev/null");
 
     die("Package differences query failed")
       unless ($ret == 0);
@@ -186,11 +189,11 @@ sub get_pkg {
     
     given (ref $pkg) {
         when ('') {
-            return $pkg if ($pkg =~ m/^[A-Za-z0-9\-\_\.]+$/);
+            return $pkg if ($pkg =~ m/^[A-Za-z0-9\-\_\.\/]+$/);
         }
         when ('HASH') {
             my $pkg_name = $pkg->{$type} // $pkg->{default};
-            return $pkg_name if ($pkg_name =~ m/^[A-Za-z0-9\-\_\.]+$/);
+            return $pkg_name if ($pkg_name =~ m/^[A-Za-z0-9\-\_\.\/]+$/);
         }
     }
     
@@ -212,11 +215,11 @@ Set the default package type
 
 =head1 AUTHOR
 
-Anthony Johnson, E<lt>anthony@ohess.orgE<gt>
+Anthony Johnson, C<< <aj@ohess.org> >>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2011 Anthony Johnson
+Copyright (c) 2012 Anthony Johnson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

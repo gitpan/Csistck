@@ -33,6 +33,9 @@ our $Cmds = {
     pacman => {
         check => 'pacman -Qe "%s"',
         install => 'pacman -Sq --noconfirm "%s"'
+    },
+    pkg_info => {
+        check => 'pkg_info -Qq "%s>0"'
     }
 };
 
@@ -120,9 +123,15 @@ sub pkg_check {
 # Package install
 sub pkg_install {
     my ($pkg, $type) = @_;
-    my $cmd = sprintf($Cmds->{$type}->{install}, $pkg) or
-      die("Package install command missing: type=<$type>");
-    
+    my $cmd;
+
+    if (defined $Cmds->{$type}->{install}) {
+        $cmd = sprintf($Cmds->{$type}->{install}, $pkg);
+    }
+    else {
+        die("Package install command missing: type=<$type>");
+    }
+
     $ENV{DEBIAN_FRONTEND} = "noninteractive";
     debug("Installing package via command: cmd=<$cmd>");
     my $ret = system("$cmd 1>/dev/null 2>/dev/null");

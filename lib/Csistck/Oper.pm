@@ -13,6 +13,7 @@ our @EXPORT_OK = qw/
 
 use Carp;
 use Getopt::Long;
+use Term::ANSIColor;
 
 # Logging levels, default boolean
 our $Modes = { 
@@ -26,7 +27,17 @@ our $Options = {
     verbose => 0,
     debug => 0,
     quiet => 0,
-    repair => 0
+    repair => 0,
+    help => 0,
+    color => 1
+};
+
+# Set up colored output
+$Term::ANSIColor::EACHLINE = "\n";
+my $Colors = {
+    'debug' => 'black',
+    'info' => 'yellow',
+    'error' => 'red'
 };
 
 # Dynamic setup of reporting functions
@@ -72,11 +83,38 @@ sub set_mode_by_cli {
     $Modes->{error} = ($Options->{quiet}) ? 0 : 1;
 }
 
+# Display usage
+sub usage {
+    return undef unless ($Options->{help});
+    
+    print <<EOF;
+Usage: $0 [OPTION]...
+
+  Arguments:
+    
+    --help      Display usage
+    --verbose   Verbose output
+    --debug     Debug output
+    --repair    Run repair operations
+    --quiet     Less output
+    --nocolor   Turn off colored output
+
+EOF
+    return 1;
+}
+
 sub log_message {
     my $level = shift;
     my $msg = shift;
     
-    printf("[%s]\ %s\n", uc($level), $msg);
+    my $log_line = sprintf("[%s]\ %s\n", uc($level), $msg);
+
+    if ($Options->{color}) {
+        print(colored($log_line, $Colors->{$level}));
+    }
+    else {
+        print($log_line);
+    }
 }
 
 1;

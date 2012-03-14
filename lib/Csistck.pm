@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.07_08';
+our $VERSION = '0.08';
 
 # We export function in the main namespace
 use base 'Exporter';
@@ -36,103 +36,12 @@ use Csistck::Term;
 
 use Sys::Hostname::Long qw//;
 use Data::Dumper;
-use Scalar::Util qw/blessed/;
+use Scalar::Util qw/blessed reftype/;
 
 # Package wide
 my $Hosts = {};
 my $Roles = {};
 
-# Add obj to host array. Tests are Csistck::Test blessed references and
-# roles are code references.
-sub host {
-    my $hostname = shift;
-
-    # Add domain if option is set?
-    my $domain_name = Csistck::Config::option('domain_name');
-    $hostname = join '.', $hostname, $domain_name
-      if (defined $domain_name);
-
-    while (my $require = shift) {
-        push(@{$Hosts->{$hostname}}, $require);
-    }
-
-    return $Hosts->{$hostname};
-}
-
-# Define/reference role and define subrole code ref or Csistck::Test
-sub role {
-    my $role = shift;
-
-    # If tests specified, add now
-    while (my $require = shift) {
-        push(@{$Roles->{$role}}, $require);
-    }
-
-    return sub { 
-        # Run required role or die
-        die ("What's this, \"${role}\"? That role is bupkis.")
-          unless (defined $Roles->{$role});
-        
-        process($Roles->{$role});
-    }
-}
-
-# Main call to start processing
-sub check {
-    my $hostname = shift // Sys::Hostname::Long::hostname_long();
-
-    # Get options by command line
-    Csistck::Oper::set_mode_by_cli();
-
-    die ("What's this, \"${hostname}\"? That host is bupkis.")
-      unless (defined $Hosts->{$hostname});
-
-    process($Hosts->{$hostname});
-}
-
-# For recursive testing based on type
-sub process {
-    my $obj = shift;
-    
-    # Iterate through array and recursively call process, call code refs, 
-    # and run tests
-
-    given (ref $obj) {
-        when ("ARRAY") {
-            foreach my $subobj (@{$obj}) {
-                process($subobj);
-            }
-        }
-        when ("CODE") {
-            &{$obj};
-        }
-        when ("Csistck::Test") {
-            # Check is mandatory, if auto repair is set, repair, otherwise prompt
-            if (!$obj->check()) {
-                if (Csistck::Oper::repair()) {
-                    $obj->repair()
-                }
-                else {
-                    Csistck::Term::prompt($obj);
-                }
-            }
-        }
-        default {
-            # Object might be subclass of Csistck::Role
-            if (blessed($obj) and $obj->isa('Csistck::Role')) {
-                foreach my $subobj (@{$obj->get_tests()}) {
-                    process($subobj);
-                }
-            }
-            else {
-                die(sprintf("Unkown object reference: ref=<%s>", ref $obj));
-            }
-        }
-    }
-}
-
-1;
-__END__
 
 =head1 NAME
 
@@ -188,7 +97,134 @@ method is to extend a new object from L<Csistck::Role>:
 
 See L<Csistck::Role> for information on extending roles
 
+
 =head1 METHODS
+
+
+=head2 host($host, $checks)
+
+Add tests to host C<$host> test array. Tests are Csistck::Test blessed references, code
+references, or arrays of either. To process host tests, use C<check()>.
+
+=cut
+
+sub host {
+    my $hostname = shift;
+
+    # Add domain if option is set?
+    my $domain_name = Csistck::Config::option('domain_name');
+    $hostname = join '.', $hostname, $domain_name
+      if (defined $domain_name);
+
+    while (my $require = shift) {
+        push(@{$Hosts->{$hostname}}, $require);
+    }
+
+    return $Hosts->{$hostname};
+}
+
+=head2 role($role, $checks)
+
+Define a weak role. Constructed similar to a host check, however roles are not
+called directly, rather they are used to define groups of common tests that can
+be used by multiple hosts.
+
+See L<EXTENDING ROLES> above for an object-based style of defining roles, which
+allows for passing role configuration.
+
+=cut
+
+sub role {
+    my $role = shift;
+
+    # If tests specified, add now
+    while (my $require = shift) {
+        push(@{$Roles->{$role}}, $require);
+    }
+
+    return sub { 
+        # Run required role or die
+        die ("What's this, \"${role}\"? That role is bupkis.")
+          unless (defined $Roles->{$role});
+        
+        process($Roles->{$role});
+    }
+}
+
+=head2 check($target)
+
+Runs processing on C<$target>. If C<$target> is C<undef>, then look up the
+system's full hostname. If C<$target> is a string, use that string for a
+hostname lookup. If C<$target> is a C<Csistck::Test> reference, a coderef, or an
+arrayref, then process that object directly. This is useful for writing scripts
+where hostname is not important.
+
+=cut
+
+sub check {
+    my $target = shift // Sys::Hostname::Long::hostname_long();
+
+    # Process cli arguments for mode/etc, usage
+    Csistck::Oper::set_mode_by_cli();
+    return if (Csistck::Oper::usage());
+
+    # If target is a string, process as hostname reference. Otherwise, assume a
+    # test object was passed
+    if (!defined(reftype($target))) {
+        die ("What's this, \"${target}\"? That host is bupkis.")
+          unless (defined $Hosts->{$target});
+        process($Hosts->{$target});
+    }
+    else {
+        process($target);
+    }
+}
+
+# For recursive testing based on type
+sub process {
+    my $obj = shift;
+    
+    # Iterate through array and recursively call process, call code refs, 
+    # and run tests
+
+    given (ref $obj) {
+        when ("ARRAY") {
+            foreach my $subobj (@{$obj}) {
+                process($subobj);
+            }
+        }
+        when ("CODE") {
+            &{$obj};
+        }
+        when ("Csistck::Test") {
+            # Check is mandatory, if auto repair is set, repair, otherwise prompt
+            if (!$obj->check()) {
+                if (Csistck::Oper::repair()) {
+                    $obj->repair()
+                }
+                else {
+                    Csistck::Term::prompt($obj);
+                }
+            }
+        }
+        default {
+            # Object might be subclass of Csistck::Role
+            if (blessed($obj) and $obj->isa('Csistck::Role')) {
+                foreach my $subobj (@{$obj->get_tests()}) {
+                    process($subobj);
+                }
+            }
+            else {
+                die(sprintf("Unkown object reference: ref=<%s>", ref $obj));
+            }
+        }
+    }
+}
+
+1;
+__END__
+
+=head1 EXPORTED METHODS
 
 =head2 option($name, $value)
 
@@ -330,7 +366,7 @@ Anthony Johnson, C<< <aj@ohess.org> >>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2011 Anthony Johnson
+Copyright (c) 2011-2012 Anthony Johnson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

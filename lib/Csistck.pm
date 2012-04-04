@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.0802';
+our $VERSION = '0.09_03';
 
 # We export function in the main namespace
 use base 'Exporter';
@@ -16,7 +16,6 @@ our @EXPORT = qw(
 
     file
     noop
-    permission
     pkg
     script
     template
@@ -26,7 +25,6 @@ our @EXPORT = qw(
 use Csistck::Config qw/option/;
 use Csistck::Test::NOOP qw/noop/;
 use Csistck::Test::File qw/file/;
-use Csistck::Test::Permission qw/permission/;
 use Csistck::Test::Pkg qw/pkg/;
 use Csistck::Test::Script qw/script/;
 use Csistck::Test::Template qw/template/;
@@ -196,20 +194,20 @@ sub process {
         when ("CODE") {
             &{$obj};
         }
-        when ("Csistck::Test") {
-            # Check is mandatory, if auto repair is set, repair, otherwise prompt
-            if (!$obj->check()) {
-                if (Csistck::Oper::repair()) {
-                    $obj->repair()
-                }
-                else {
-                    Csistck::Term::prompt($obj);
+        default {
+            if (blessed($obj) and $obj->isa('Csistck::Test')) {
+                # Check is mandatory, if auto repair is set, repair, otherwise prompt
+                if (!$obj->execute('check')) {
+                    if (Csistck::Oper::repair()) {
+                        $obj->execute('repair');
+                    }
+                    else {
+                        Csistck::Term::prompt($obj);
+                    }
                 }
             }
-        }
-        default {
-            # Object might be subclass of Csistck::Role
-            if (blessed($obj) and $obj->isa('Csistck::Role')) {
+            elsif (blessed($obj) and $obj->isa('Csistck::Role')) {
+                # Object might be subclass of Csistck::Role
                 foreach my $subobj (@{$obj->get_tests()}) {
                     process($subobj);
                 }

@@ -1,6 +1,6 @@
 ---
 author:
-  - 'Anthony Johnson, C<< <aj@ohess.org> >>'
+  - 'Anthony Johnson <aj@ohess.org>'
 build_requires:
   ExtUtils::MakeMaker: 6.59
 configure_requires:
@@ -35,4 +35,4 @@ resources:
   bugtracker: http://github.com/agjohnson/csistck/issues
   homepage: http://ohess.org/projects/csistck
   repository: http://github.com/agjohnson/csistck.git
-version: 0.09_04
+version: 0.09_05

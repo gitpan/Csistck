@@ -27,14 +27,14 @@ sub script {
         { args => [$args] };
     # Csistck::Test expects named arguments, an assoc array, deref hashref into
     # an array and pass
-    Csistck::Test::Script->new($script, @{[%{$t_args}]});
+    Csistck::Test::Script->new($script, @{[%{$args}]});
 }
 
 sub script_name { $_[0]->{target}; }
 sub args { $_[0]->{args}; }
 
 # Wrap common process function
-sub desc { sprintf("Script test on %s", $_[0]->script_name); }
+sub desc { return sprintf("Script test for %s", $_[0]->script_name); }
 sub check { $_[0]->process(MODE_CHECK); }
 sub repair { $_[0]->process(MODE_REPAIR); }
 

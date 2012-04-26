@@ -29,6 +29,7 @@ t/01exports.t
 t/01friday.t
 t/02check.t
 t/02hosts.t
+t/02on_repair.t
 t/02options.t
 t/02roles.t
 t/02tests.t

@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.09_07';
+our $VERSION = '0.09_08';
 
 # We export function in the main namespace
 use base 'Exporter';
@@ -35,6 +35,7 @@ use Csistck::Term;
 use Sys::Hostname::Long qw//;
 use Data::Dumper;
 use Scalar::Util qw/blessed reftype/;
+use List::Util qw/sum/;
 
 # Package wide
 my $Hosts = {};
@@ -186,12 +187,11 @@ sub process {
     # and run tests
 
     given (ref $obj) {
-        when ("ARRAY") {
-            foreach my $subobj (@{$obj}) {
-                process($subobj);
-            }
+        when ('ARRAY') {
+            map(process($_), @{$obj});
+            # TODO parse return for repair return
         }
-        when ("CODE") {
+        when ('CODE') {
             &{$obj};
         }
         default {
@@ -212,10 +212,7 @@ sub process {
                 }
             }
             elsif (blessed($obj) and $obj->isa('Csistck::Role')) {
-                # Object might be subclass of Csistck::Role
-                foreach my $subobj (@{$obj->get_tests()}) {
-                    process($subobj);
-                }
+                process($obj->get_tests);
             }
             else {
                 die(sprintf("Unkown object reference: ref=<%s>", ref $obj));

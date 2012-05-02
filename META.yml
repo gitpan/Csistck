@@ -35,4 +35,4 @@ resources:
   bugtracker: http://github.com/agjohnson/csistck/issues
   homepage: http://ohess.org/projects/csistck
   repository: http://github.com/agjohnson/csistck.git
-version: 0.09_10
+version: 0.09_11

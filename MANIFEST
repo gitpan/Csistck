@@ -1,3 +1,26 @@
+blib/arch/.exists
+blib/arch/auto/Csistck/.exists
+blib/bin/.exists
+blib/lib/.exists
+blib/lib/auto/Csistck/.exists
+blib/lib/Csistck.pm
+blib/lib/Csistck/Config.pm
+blib/lib/Csistck/Oper.pm
+blib/lib/Csistck/Role.pm
+blib/lib/Csistck/Term.pm
+blib/lib/Csistck/Test.pm
+blib/lib/Csistck/Test/File.pm
+blib/lib/Csistck/Test/FileBase.pm
+blib/lib/Csistck/Test/NOOP.pm
+blib/lib/Csistck/Test/Pkg.pm
+blib/lib/Csistck/Test/Return.pm
+blib/lib/Csistck/Test/Script.pm
+blib/lib/Csistck/Test/Template.pm
+blib/lib/Csistck/Util.pm
+blib/lib/README.pod
+blib/man1/.exists
+blib/man3/.exists
+blib/script/.exists
 Changes
 inc/Module/Install.pm
 inc/Module/Install/Base.pm
@@ -24,6 +47,7 @@ lib/Csistck/Util.pm
 Makefile.PL
 MANIFEST			This list of files
 META.yml
+pm_to_blib
 README.pod
 t/00load.t
 t/01exports.t

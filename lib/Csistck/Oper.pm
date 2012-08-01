@@ -32,6 +32,9 @@ our $Options = {
     color => 1
 };
 
+# String options
+our $Roles = [];
+
 # Set up colored output
 $Term::ANSIColor::EACHLINE = "\n";
 my $Colors = {
@@ -75,7 +78,10 @@ sub set_mode_by_cli {
     # Map options (as getopt negatable option) to $Options
     # TODO more options
     my %opts = map { +"$_!" => \$Options->{$_} } keys %{$Options};
-    my $result = GetOptions(%opts);
+    my $result = GetOptions(%{{
+        'role=s' => \@{$Roles},
+        %opts
+    }});
 
     # Set reporting mode based on options
     $Modes->{info} = ($Options->{verbose}) ? 1 : 0;
@@ -96,6 +102,7 @@ Usage: $0 [OPTION]...
     --verbose   Verbose output
     --debug     Debug output
     --repair    Run repair operations
+    --role=ROLE Force check on weak role ROLE
     --quiet     Less output
     --nocolor   Turn off colored output
 

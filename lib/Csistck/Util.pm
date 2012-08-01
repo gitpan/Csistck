@@ -26,7 +26,9 @@ sub backup_file {
     debug("Backing up file: <file=$file>");
     
     # Get absolute backup path
-    my $dest_base = option('backup_path') // join '/', $FindBin::Bin, 'backup';
+    my $dest_base = option('backup_path') //
+      join '/', $FindBin::Bin, 'backup';
+
     die("Backup path does not exist: path=<$dest_base>")
       if (! -e $dest_base);
     die("Backup path is not writable: path=<$dest_base>")
@@ -38,7 +40,8 @@ sub backup_file {
     $tmp_template .= "-XXXXXX";
     my $tmp = File::Temp->new(
         TEMPLATE => $tmp_template,
-        DIR => $dest_base
+        DIR => $dest_base,
+        UNLINK => 0
     );
     my $dest = $tmp->filename;
 

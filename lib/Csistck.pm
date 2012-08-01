@@ -4,7 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
-our $VERSION = '0.1002';
+our $VERSION = '0.1003';
 
 # We export function in the main namespace
 use base 'Exporter';
@@ -189,9 +189,15 @@ sub check {
     Csistck::Oper::set_mode_by_cli();
     return if (Csistck::Oper::usage());
 
-    # If target is a string, process as hostname reference. Otherwise, assume a
+    # Role names specified on the command line via --role have priority. If
+    # target is a string, process as hostname reference. Otherwise, assume a
     # test object was passed
-    if (!defined(reftype($target))) {
+    if (scalar @{$Csistck::Oper::Roles} gt 0) {
+        return process(
+            map { role($_) } @{$Csistck::Oper::Roles}
+        );
+    }
+    elsif (!defined(reftype($target))) {
         die ("What's this, \"${target}\"? That host is bupkis.")
           unless (defined $Hosts->{$target});
         return process($Hosts->{$target});
@@ -398,6 +404,14 @@ Toggle debug reporting of events
 B<--[no]quiet>
 
 Toggle event reporting of errors
+
+=item *
+
+B<--role=[ROLE]>
+
+Instead of relying on a hostname lookup to execute the check, force check on
+weak role ROLE instead. This option can be specified multiple times to check
+multiple roles.
 
 =back
 
